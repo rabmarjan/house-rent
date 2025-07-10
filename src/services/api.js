@@ -25,8 +25,8 @@ export const authAPI = {
   loginUser: async (email, password) => {
     const response = await fetch(`${API_BASE_URL}/auth/user/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         username: email,
         password: password
       })
@@ -38,8 +38,8 @@ export const authAPI = {
   loginAgent: async (email, password) => {
     const response = await fetch(`${API_BASE_URL}/auth/agent/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         username: email,
         password: password
       })
