@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,13 +17,50 @@ import {
   Shield,
   Clock
 } from 'lucide-react'
+import { housesAPI, agentsAPI } from '../services/api'
 
 const HomePage = () => {
   const [searchLocation, setSearchLocation] = useState('')
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [bedrooms, setBedrooms] = useState('')
+  const [featuredProperties, setFeaturedProperties] = useState([])
+  const [agents, setAgents] = useState({})
+  const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+
+  // Fetch featured properties and agents on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        
+        // Fetch houses
+        const housesData = await housesAPI.getHouses({ limit: 3 })
+        
+        // Fetch agents
+        const agentsData = await agentsAPI.getAgents()
+        
+        // Create agents lookup object
+        const agentsLookup = {}
+        agentsData.forEach(agent => {
+          agentsLookup[agent.id] = agent
+        })
+        
+        setFeaturedProperties(housesData)
+        setAgents(agentsLookup)
+      } catch (error) {
+        console.error('Error fetching data:', error)
+        // Fallback to empty arrays if API fails
+        setFeaturedProperties([])
+        setAgents({})
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -35,47 +72,7 @@ const HomePage = () => {
     
     navigate(`/search?${params.toString()}`)
   }
-
-  // Mock featured properties data
-  const featuredProperties = [
-    {
-      id: 1,
-      title: "Modern Downtown Apartment",
-      address: "123 Main St, Downtown",
-      price: 2500,
-      bedrooms: 2,
-      bathrooms: 2,
-      sqft: 1200,
-      image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop",
-      agent: "Sarah Johnson",
-      rating: 4.8
-    },
-    {
-      id: 2,
-      title: "Cozy Suburban House",
-      address: "456 Oak Ave, Suburbia",
-      price: 3200,
-      bedrooms: 3,
-      bathrooms: 2.5,
-      sqft: 1800,
-      image: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=300&fit=crop",
-      agent: "Mike Chen",
-      rating: 4.9
-    },
-    {
-      id: 3,
-      title: "Luxury Penthouse",
-      address: "789 Sky Tower, Uptown",
-      price: 5500,
-      bedrooms: 3,
-      bathrooms: 3,
-      sqft: 2200,
-      image: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=300&fit=crop",
-      agent: "Emily Davis",
-      rating: 5.0
-    }
-  ]
-
+  
   const features = [
     {
       icon: <Search className="h-8 w-8 text-blue-600" />,
@@ -207,7 +204,7 @@ const HomePage = () => {
               <Card key={property.id} className="overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
                 <div className="relative">
                   <img
-                    src={property.image}
+                    src={property.images && property.images.length > 0 ? property.images[0] : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop'}
                     alt={property.title}
                     className="w-full h-48 object-cover"
                   />
@@ -226,11 +223,11 @@ const HomePage = () => {
                   
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-2xl font-bold text-blue-600">
-                      ${property.price.toLocaleString()}/mo
+                      ${property.rent_price?.toLocaleString()}/mo
                     </span>
                     <div className="flex items-center space-x-1">
                       <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                      <span className="text-sm text-gray-600">{property.rating}</span>
+                      <span className="text-sm text-gray-600">{agents[property.agent_id]?.rating || 'N/A'}</span>
                     </div>
                   </div>
 
@@ -245,13 +242,13 @@ const HomePage = () => {
                     </div>
                     <div className="flex items-center">
                       <Square className="h-4 w-4 mr-1" />
-                      {property.sqft} sqft
+                      {property.square_feet} sqft
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">
-                      Agent: {property.agent}
+                      Agent: {agents[property.agent_id]?.full_name || 'Loading...'}
                     </span>
                     <Button size="sm" onClick={() => navigate(`/property/${property.id}`)}>
                       View Details

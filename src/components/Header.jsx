@@ -9,12 +9,18 @@ import {
   Menu, 
   X,
   Truck,
-  MapPin
+  MapPin,
+  LogOut,
+  Settings
 } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
+import AuthModal from './AuthModal'
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const { isAuthenticated, user, userType, logout } = useAuth()
   const navigate = useNavigate()
 
   const handleSearch = (e) => {
@@ -22,6 +28,20 @@ const Header = () => {
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery)}`)
     }
+  }
+
+  const handleAuthSuccess = (userData, type) => {
+    // Redirect based on user type
+    if (type === 'agent') {
+      navigate('/agent-dashboard')
+    } else {
+      navigate('/dashboard')
+    }
+  }
+
+  const handleLogout = () => {
+    logout()
+    navigate('/')
   }
 
   return (
@@ -83,18 +103,32 @@ const Header = () => {
 
           {/* User Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="ghost" size="sm">
-              Sign In
-            </Button>
-            <Button size="sm">
-              Sign Up
-            </Button>
-            <Link to="/dashboard">
-              <Button variant="outline" size="sm">
-                <User className="h-4 w-4 mr-2" />
-                Dashboard
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <span className="text-sm text-gray-600">
+                  Welcome, {user?.full_name || user?.username}
+                </span>
+                <Link to={userType === 'agent' ? '/agent-dashboard' : '/dashboard'}>
+                  <Button variant="outline" size="sm">
+                    <User className="h-4 w-4 mr-2" />
+                    Dashboard
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="sm" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => setIsAuthModalOpen(true)}>
+                  Sign In
+                </Button>
+                <Button size="sm" onClick={() => setIsAuthModalOpen(true)}>
+                  Sign Up
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -165,17 +199,41 @@ const Header = () => {
               
               {/* Mobile Auth Buttons */}
               <div className="flex space-x-2 pt-4">
-                <Button variant="ghost" size="sm" className="flex-1">
-                  Sign In
-                </Button>
-                <Button size="sm" className="flex-1">
-                  Sign Up
-                </Button>
+                {isAuthenticated ? (
+                  <>
+                    <Button variant="ghost" size="sm" className="flex-1" onClick={handleLogout}>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </Button>
+                    <Link to={userType === 'agent' ? '/agent-dashboard' : '/dashboard'} className="flex-1">
+                      <Button size="sm" className="w-full">
+                        <User className="h-4 w-4 mr-2" />
+                        Dashboard
+                      </Button>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="ghost" size="sm" className="flex-1" onClick={() => setIsAuthModalOpen(true)}>
+                      Sign In
+                    </Button>
+                    <Button size="sm" className="flex-1" onClick={() => setIsAuthModalOpen(true)}>
+                      Sign Up
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* Authentication Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthSuccess={handleAuthSuccess}
+      />
     </header>
   )
 }
