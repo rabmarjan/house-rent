@@ -302,7 +302,15 @@ export const authUtils = {
   // Get user data
   getUserData: () => {
     const userData = localStorage.getItem('user_data');
-    return userData ? JSON.parse(userData) : null;
+    if (!userData || userData === 'undefined') {
+      return null;
+    }
+    try {
+      return JSON.parse(userData);
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      return null;
+    }
   },
 
   // Get user type
