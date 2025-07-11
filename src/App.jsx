@@ -7,6 +7,8 @@ import PropertyDetails from './components/PropertyDetails'
 import AgentProfile from './components/AgentProfile'
 import FurnitureMoving from './components/FurnitureMoving'
 import UserDashboard from './components/UserDashboard'
+import AgentDashboard from './components/AgentDashboard'
+import AdminDashboard from './components/AdminDashboard'
 import MapView from './components/MapView'
 import ProtectedRoute from './components/ProtectedRoute'
 import './App.css'
@@ -36,7 +38,15 @@ function App() {
               path="/agent-dashboard" 
               element={
                 <ProtectedRoute allowedUserTypes={['agent']}>
-                  <AgentProfile />
+                  <AgentDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin-dashboard" 
+              element={
+                <ProtectedRoute allowedUserTypes={['user']}>
+                  <AdminDashboard />
                 </ProtectedRoute>
               } 
             />
