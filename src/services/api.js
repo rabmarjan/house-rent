@@ -1,5 +1,5 @@
 // API configuration
-const API_BASE_URL = 'https://8000-ieyd0k2av9hrbgq065rer-6d11dd9c.manusvm.computer/api/v1';
+const API_BASE_URL = 'https://8000-ik9zoi4mf3q0hvipc4wxe-e00ce5a2.manusvm.computer/api/v1';
 
 // Helper function to handle API responses
 const handleResponse = async (response) => {

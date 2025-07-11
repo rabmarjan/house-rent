@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -25,63 +26,71 @@ import {
 
 const UserDashboard = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
+  const [stats, setStats] = useState(null)
+  const [savedProperties, setSavedProperties] = useState([])
+  const [movingRequests, setMovingRequests] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  // Mock user data
-  const user = {
-    name: "John Smith",
-    email: "john.smith@email.com",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop",
-    memberSince: "January 2024",
-    savedProperties: 12,
-    viewedProperties: 45,
-    movingRequests: 3
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const fetchDashboardData = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+
+      // Fetch user stats (we'll use houses as saved properties for now)
+      const housesResponse = await fetch('http://localhost:8000/api/v1/houses/', { headers })
+      if (housesResponse.ok) {
+        const housesData = await housesResponse.json()
+        setSavedProperties(housesData.slice(0, 3)) // Show first 3 as saved
+        setStats({
+          savedProperties: 3,
+          viewedProperties: housesData.length,
+          movingRequests: 2,
+          activeAlerts: 2
+        })
+      }
+
+      // Fetch moving requests
+      const movingResponse = await fetch('http://localhost:8000/api/v1/furniture-requests/', { headers })
+      if (movingResponse.ok) {
+        const movingData = await movingResponse.json()
+        setMovingRequests(movingData.slice(0, 3)) // Show first 3
+      }
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+      // Set default stats if API fails
+      setStats({
+        savedProperties: 0,
+        viewedProperties: 0,
+        movingRequests: 0,
+        activeAlerts: 0
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // Mock saved properties
-  const savedProperties = [
-    {
-      id: 1,
-      title: "Modern Downtown Apartment",
-      address: "123 Main St, Downtown",
-      price: 2500,
-      bedrooms: 2,
-      bathrooms: 2,
-      sqft: 1200,
-      image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop",
-      agent: "Sarah Johnson",
-      rating: 4.8,
-      savedDate: "2 days ago"
-    },
-    {
-      id: 2,
-      title: "Cozy Suburban House",
-      address: "456 Oak Ave, Suburbia",
-      price: 3200,
-      bedrooms: 3,
-      bathrooms: 2.5,
-      sqft: 1800,
-      image: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=300&fit=crop",
-      agent: "Mike Chen",
-      rating: 4.9,
-      savedDate: "1 week ago"
-    },
-    {
-      id: 3,
-      title: "Luxury Penthouse",
-      address: "789 Sky Tower, Uptown",
-      price: 5500,
-      bedrooms: 3,
-      bathrooms: 3,
-      sqft: 2200,
-      image: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=300&fit=crop",
-      agent: "Emily Davis",
-      rating: 5.0,
-      savedDate: "2 weeks ago"
-    }
-  ]
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
 
-  // Mock search alerts
+  // Mock search alerts and recent activity (these would come from API in real app)
   const searchAlerts = [
     {
       id: 1,
@@ -98,49 +107,9 @@ const UserDashboard = () => {
       frequency: "Weekly",
       active: true,
       newMatches: 1
-    },
-    {
-      id: 3,
-      name: "Luxury condos",
-      criteria: "Luxury, 3+ bedrooms, Uptown",
-      frequency: "Weekly",
-      active: false,
-      newMatches: 0
     }
   ]
 
-  // Mock moving requests
-  const movingRequests = [
-    {
-      id: 1,
-      from: "123 Old St, Current City",
-      to: "456 New Ave, New City",
-      date: "2024-01-15",
-      status: "completed",
-      company: "Swift Movers",
-      cost: 850
-    },
-    {
-      id: 2,
-      from: "789 Previous Rd, Old Town",
-      to: "123 Current St, Downtown",
-      date: "2024-01-20",
-      status: "in_progress",
-      company: "Reliable Moving Co.",
-      cost: 1200
-    },
-    {
-      id: 3,
-      from: "456 Current Ave, Downtown",
-      to: "789 Future Blvd, Uptown",
-      date: "2024-02-01",
-      status: "pending",
-      company: "City Movers Express",
-      cost: 950
-    }
-  ]
-
-  // Mock recent activity
   const recentActivity = [
     {
       id: 1,
@@ -162,13 +131,6 @@ const UserDashboard = () => {
       title: "Submitted moving request",
       time: "3 days ago",
       icon: <Truck className="h-4 w-4" />
-    },
-    {
-      id: 4,
-      type: "alert_created",
-      title: "Created search alert for Downtown 2BR",
-      time: "1 week ago",
-      icon: <Bell className="h-4 w-4" />
     }
   ]
 
@@ -205,17 +167,16 @@ const UserDashboard = () => {
         <div className="mb-8">
           <div className="flex items-center space-x-4 mb-4">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={user.avatar} alt={user.name} />
               <AvatarFallback className="text-xl">
-                {user.name.split(' ').map(n => n[0]).join('')}
+                {user?.full_name ? user.full_name.split(' ').map(n => n[0]).join('') : 'U'}
               </AvatarFallback>
             </Avatar>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                Welcome back, {user.name.split(' ')[0]}!
+                Welcome back, {user?.full_name ? user.full_name.split(' ')[0] : 'User'}!
               </h1>
               <p className="text-gray-600">
-                Member since {user.memberSince}
+                {user?.email || 'user@example.com'}
               </p>
             </div>
           </div>
@@ -225,28 +186,28 @@ const UserDashboard = () => {
             <Card>
               <CardContent className="p-4 text-center">
                 <Heart className="h-8 w-8 text-red-500 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gray-900">{user.savedProperties}</div>
+                <div className="text-2xl font-bold text-gray-900">{stats?.savedProperties || 0}</div>
                 <div className="text-sm text-gray-600">Saved Properties</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
                 <Search className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gray-900">{user.viewedProperties}</div>
+                <div className="text-2xl font-bold text-gray-900">{stats?.viewedProperties || 0}</div>
                 <div className="text-sm text-gray-600">Properties Viewed</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
                 <Truck className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gray-900">{user.movingRequests}</div>
+                <div className="text-2xl font-bold text-gray-900">{stats?.movingRequests || 0}</div>
                 <div className="text-sm text-gray-600">Moving Requests</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
                 <Bell className="h-8 w-8 text-purple-500 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-gray-900">{searchAlerts.filter(a => a.active).length}</div>
+                <div className="text-2xl font-bold text-gray-900">{stats?.activeAlerts || 0}</div>
                 <div className="text-sm text-gray-600">Active Alerts</div>
               </CardContent>
             </Card>
@@ -345,7 +306,7 @@ const UserDashboard = () => {
                     >
                       <div className="relative">
                         <img
-                          src={property.image}
+                          src={property.image_url || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop"}
                           alt={property.title}
                           className="w-full h-48 object-cover"
                         />
@@ -367,12 +328,8 @@ const UserDashboard = () => {
                         </p>
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-xl font-bold text-blue-600">
-                            ${property.price.toLocaleString()}/mo
+                            ${property.rent_price?.toLocaleString()}/mo
                           </span>
-                          <div className="flex items-center space-x-1">
-                            <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                            <span className="text-sm text-gray-600">{property.rating}</span>
-                          </div>
                         </div>
                         <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
                           <div className="flex items-center">
@@ -385,11 +342,8 @@ const UserDashboard = () => {
                           </div>
                           <div className="flex items-center">
                             <Square className="h-4 w-4 mr-1" />
-                            {property.sqft} sqft
+                            {property.square_feet} sqft
                           </div>
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Saved {property.savedDate}
                         </div>
                       </div>
                     </div>
@@ -467,32 +421,28 @@ const UserDashboard = () => {
                         <div className="flex items-center space-x-2">
                           <Badge className={getStatusColor(request.status)}>
                             {getStatusIcon(request.status)}
-                            <span className="ml-1 capitalize">{request.status.replace('_', ' ')}</span>
+                            <span className="ml-1 capitalize">{request.status?.replace('_', ' ')}</span>
                           </Badge>
                         </div>
                         <span className="text-sm text-gray-500">
-                          {new Date(request.date).toLocaleDateString()}
+                          {request.created_at ? new Date(request.created_at).toLocaleDateString() : 'N/A'}
                         </span>
                       </div>
                       
                       <div className="space-y-2 mb-3">
                         <div className="flex items-center space-x-2 text-sm">
                           <span className="text-gray-600">From:</span>
-                          <span className="text-gray-900">{request.from}</span>
+                          <span className="text-gray-900">{request.pickup_address}</span>
                         </div>
                         <div className="flex items-center space-x-2 text-sm">
                           <span className="text-gray-600">To:</span>
-                          <span className="text-gray-900">{request.to}</span>
-                        </div>
-                        <div className="flex items-center space-x-2 text-sm">
-                          <span className="text-gray-600">Company:</span>
-                          <span className="text-gray-900">{request.company}</span>
+                          <span className="text-gray-900">{request.delivery_address}</span>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between">
                         <span className="text-lg font-semibold text-blue-600">
-                          ${request.cost}
+                          ${request.estimated_cost?.toLocaleString() || 'TBD'}
                         </span>
                         <div className="space-x-2">
                           <Button size="sm" variant="outline">
@@ -526,7 +476,7 @@ const UserDashboard = () => {
                       </label>
                       <input
                         type="text"
-                        defaultValue={user.name}
+                        defaultValue={user?.full_name || ''}
                         className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -536,7 +486,7 @@ const UserDashboard = () => {
                       </label>
                       <input
                         type="email"
-                        defaultValue={user.email}
+                        defaultValue={user?.email || ''}
                         className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
